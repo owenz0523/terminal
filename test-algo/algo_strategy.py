@@ -58,10 +58,18 @@ class AlgoStrategy(gamelib.AlgoCore):
         
         game_state.submit_turn()
 
+    # first defend short corners with turrets and walls, then add structures, then push on turn 5 with demolishers
     def early_game_strategy(self, game_state):
         if self.turn_number == 1:
-            
-        
+            pass
+        elif self.turn_number == 2:
+            pass
+        elif self.turn_number == 3:
+            pass
+        elif self.turn_number == 4:
+            pass
+        else:
+            pass
 
 if __name__ == "__main__":
     algo = AlgoStrategy()
