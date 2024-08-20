@@ -21,6 +21,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.scored_on_locations = []
         self.game_state_history = []
         self.opponent_move_history = []
+        self.attack_flag = False # determines if attack happens
 
         # board with 0 = wall, 1 = turret, 2 = structure
         self.structure_board = np.zeros((28, 28), dtype=np.int8)
@@ -54,12 +55,12 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         self.update_opponent_move_history(game_state)
         self.update_game_state(game_state)
-        self.update_evaluation_board(game_state)
         
         game_state.submit_turn()
 
-    # first defend short corners with turrets and walls, then add structures, then push on turn 5 with demolishers
+    # first defend short corners with turrets and walls, then add upgraded structures, then push on turn 5 with demolishers
     def early_game_strategy(self, game_state):
+        # hard code this
         if self.turn_number == 1:
             pass
         elif self.turn_number == 2:
@@ -70,6 +71,49 @@ class AlgoStrategy(gamelib.AlgoCore):
             pass
         else:
             pass
+    
+    # keep track of opponents moves and their corresponding points remaining
+    def update_opponent_move_history(self, game_state):
+        # change self.opponent_points and self.opponent_move_history
+        pass
+
+    # update the board and dictionary with the new game state
+    def update_game_state(self, game_state):
+        pass
+    
+    # strategy
+    def dynamic_defense_strategy(self, game_state):
+        defend_needed = []
+        self.update_attacked_locations(game_state)
+        self.update_scored_on_locations(game_state)
+        self.defend_attacked_locations(game_state)
+        self.defend_vulnerable_locations(game_state)
+        self.predict_opponent_moves(game_state)
+        self.defend_likely_moves(game_state)
+
+    # check attacked locations - use github code from other guy
+    def update_attacked_locations(self, game_state):
+        pass
+
+    # check scored locations - use template code
+    def update_scored_on_locations(self, game_state):
+        pass
+
+    # defend attacked locations - return list of locations to defend structures that have been attacked
+    def defend_attacked_locations(self, game_state):
+        pass
+
+    # defend scored locations - return list of locations that have been scored on or have a direct path
+    def defend_vulnerable_locations(self, game_state):
+        pass
+
+    # predict opponent moves - use random forest
+    def predict_opponent_moves(self, game_state):
+        pass
+
+    # based on what the opponent is likely to do, create an algo to prioritize where to defend either by upgrading or deploying more structures - also consider creating a funnel 
+    def defend_likely_moves(self, game_state):
+        pass
 
 if __name__ == "__main__":
     algo = AlgoStrategy()
