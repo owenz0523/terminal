@@ -81,7 +81,7 @@ class AlgoStrategy(gamelib.AlgoCore):
     def update_game_state(self, game_state):
         pass
     
-    # strategy
+    # defense strategy
     def dynamic_defense_strategy(self, game_state):
         defend_needed = []
         self.update_attacked_locations(game_state)
@@ -113,6 +113,21 @@ class AlgoStrategy(gamelib.AlgoCore):
 
     # based on what the opponent is likely to do, create an algo to prioritize where to defend either by upgrading or deploying more structures - also consider creating a funnel 
     def defend_likely_moves(self, game_state):
+        pass
+
+    # attack strategy
+    def aggressive_offense_strategy(self, game_state):
+        if self.turn_number < 15:
+            self.monte_carlo_search_tree(game_state)
+        else:
+            self.minimax(game_state)
+
+    # implement monte carlo search tree with an emphasis on attacking short corners or weak points with demolishers in one major push
+    def monte_carlo_search_tree(game_state):
+        pass
+    
+    # implement minimax with an emphasis on attacking short corners or weak points with demolishers in one major push
+    def minimax(game_state):
         pass
 
 if __name__ == "__main__":
