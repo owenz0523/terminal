@@ -20,6 +20,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.attacked_locations = {}
         self.scored_on_locations = []
         self.game_state_history = []
+        self.opponent_move_history = []
 
         # board with 0 = wall, 1 = turret, 2 = structure
         self.structure_board = np.zeros((28, 28), dtype=np.int8)
@@ -43,8 +44,24 @@ class AlgoStrategy(gamelib.AlgoCore):
     def on_turn(self, turn_state):
         game_state = gamelib.GameState(self.config, turn_state)
         game_state.suppress_warnings(True)
+        self.turn_number += 1
 
+        if self.turn_number <= 5:
+            self.early_game_strategy(game_state)
+        else:
+            self.dynamic_defense_strategy(game_state)
+            self.aggressive_offense_strategy(game_state)
+
+        self.update_opponent_move_history(game_state)
+        self.update_game_state(game_state)
+        self.update_evaluation_board(game_state)
+        
         game_state.submit_turn()
+
+    def early_game_strategy(self, game_state):
+        if self.turn_number == 1:
+            
+        
 
 if __name__ == "__main__":
     algo = AlgoStrategy()
