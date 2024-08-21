@@ -232,6 +232,21 @@ class AlgoStrategy(gamelib.AlgoCore):
                 gamelib.debug_write("Got scored on at: {}".format(location))
                 self.scored_on_locations.append(location)
                 gamelib.debug_write("All locations: {}".format(self.scored_on_locations))
+                
+    # Define & hard-code opening behaviour:
+    # First defend short corners with turrets and walls, then add upgraded structures, then push on turn 5 with demolishers
+    def early_game_strategy(self, game_state):
+        # hard code this
+        if self.turn_number == 1:
+            pass
+        elif self.turn_number == 2:
+            pass
+        elif self.turn_number == 3:
+            pass
+        elif self.turn_number == 4:
+            pass
+        else:
+            pass
 
 
 if __name__ == "__main__":
