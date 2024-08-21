@@ -22,7 +22,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.myHealth = 0
         self.opponentHealth = 0
         self.random_forest = RandomForestClassifier(n_estimators=100)
-        self.attacked_locations = {}
+        self.attacked_locations = []
         self.game_state_history = []
         self.opponent_move_history = []
         self.attack_flag = False # determines if attack happens
@@ -77,11 +77,6 @@ class AlgoStrategy(gamelib.AlgoCore):
             pass
         else:
             pass
-    
-    # keep track of opponents moves and their corresponding points remaining
-    def update_opponent_move_history(self, game_state):
-        # change self.opponent_points and self.opponent_move_history
-        pass
 
     # update the board and dictionary with the new game state
     def update_game_state(self, game_state):
@@ -102,16 +97,16 @@ class AlgoStrategy(gamelib.AlgoCore):
         self.opponentHealth = game_state.enemy_health
         self.mySP, self.myMP = game_state.get_resources(0)
         self.opponentSP, self.opponentMP = game_state.get_resources(1)
+        self.game_state_history.append(game_state)
     
     # defense strategy
     def dynamic_defense_strategy(self, game_state):
         defend_needed = []
         self.update_attacked_locations(game_state)
-        self.update_scored_on_locations(game_state)
-        self.defend_attacked_locations(game_state)
-        self.defend_vulnerable_locations(game_state)
+        self.defend_attacked_locations(game_state, defend_needed)
+        self.defend_vulnerable_locations(game_state, defend_needed)
         self.predict_opponent_moves(game_state)
-        self.defend_likely_moves(game_state)
+        self.defend_likely_moves(game_state, defend_needed)
 
     # check attacked locations - use github code from other guy
     def update_attacked_locations(self, game_state):
@@ -143,12 +138,20 @@ class AlgoStrategy(gamelib.AlgoCore):
                 self.scored_locations.append(location)
                 gamelib.debug_write("All locations: {}".format(self.scored_locations))
 
+        # keep track of opponent moves
+        spawns = events["spawn"]
+        for spawn in spawns:
+            if spawn[3] == 2:
+                location = spawn[0]
+                unit_type = spawn[1]
+                self.opponent_move_history.append([location, unit_type])
+
     # defend attacked locations - return list of locations to defend structures that have been attacked
-    def defend_attacked_locations(self, game_state):
+    def defend_attacked_locations(self, game_state, defend_needed):
         pass
 
     # defend scored locations - return list of locations that have been scored on or have a direct path
-    def defend_vulnerable_locations(self, game_state):
+    def defend_vulnerable_locations(self, game_state, defend_needed):
         pass
 
     # predict opponent moves - use random forest
@@ -156,7 +159,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         pass
 
     # based on what the opponent is likely to do, create an algo to prioritize where to defend either by upgrading or deploying more structures - also consider creating a funnel 
-    def defend_likely_moves(self, game_state):
+    def defend_likely_moves(self, game_state, defend_needed):
         pass
 
     # attack strategy
