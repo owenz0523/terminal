@@ -15,15 +15,19 @@ class AlgoStrategy(gamelib.AlgoCore):
         random.seed(seed)
         gamelib.debug_write('Random seed: {}'.format(seed))
         self.turn_number = 0
-        self.opponent_points = 0
+        self.myMP= 0
+        self.opponentMP = 0
+        self.mySP = 0
+        self.opponentSP = 0
+        self.myHealth = 0
+        self.opponentHealth = 0
         self.random_forest = RandomForestClassifier(n_estimators=100)
         self.attacked_locations = {}
-        self.scored_on_locations = []
         self.game_state_history = []
         self.opponent_move_history = []
         self.attack_flag = False # determines if attack happens
 
-        # board with 0 = wall, 1 = turret, 2 = structure
+        # board with 1 = wall, 2 = turret, 3 = structure, add 3 if its an enemy structure
         self.structure_board = np.zeros((28, 28), dtype=np.int8)
 
         # (x, y) => (unit_health, is_unit_upgraded)
@@ -41,6 +45,8 @@ class AlgoStrategy(gamelib.AlgoCore):
         INTERCEPTOR = config["unitInformation"][5]["shorthand"]
         MP = 1
         SP = 0
+        self.scored_on_locations = []
+        self.scored_locations = []
 
     def on_turn(self, turn_state):
         game_state = gamelib.GameState(self.config, turn_state)
@@ -52,7 +58,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         else:
             self.dynamic_defense_strategy(game_state)
             self.aggressive_offense_strategy(game_state)
-
+    
         self.update_opponent_move_history(game_state)
         self.update_game_state(game_state)
         
@@ -79,7 +85,23 @@ class AlgoStrategy(gamelib.AlgoCore):
 
     # update the board and dictionary with the new game state
     def update_game_state(self, game_state):
-        pass
+        for location in game_state.game_map:
+            if game_state.contains_stationary_unit(location):
+                for unit in game_state.game_map[location]:
+                    if unit.unit_type == "F":
+                        self.structure_board[location[0], location[1]] = 1
+                    elif unit.unit_type == "E":
+                        self.structure_board[location[0], location[1]] = 2
+                    elif unit.unit_type == "D":
+                        self.structure_board[location[0], location[1]] = 3
+                    if unit.player_index == 1:
+                        self.structure_board += 3
+                    self.board_dict[location] = [unit.player_index, unit.unit_type, unit.health, unit.upgraded]
+
+        self.myHealth = game_state.my_health
+        self.opponentHealth = game_state.enemy_health
+        self.mySP, self.myMP = game_state.get_resources(0)
+        self.opponentSP, self.opponentMP = game_state.get_resources(1)
     
     # defense strategy
     def dynamic_defense_strategy(self, game_state):
@@ -96,8 +118,30 @@ class AlgoStrategy(gamelib.AlgoCore):
         pass
 
     # check scored locations - use template code
-    def update_scored_on_locations(self, game_state):
-        pass
+    def on_action_frame(self, turn_string):
+        """
+        This is the action frame of the game. This function could be called 
+        hundreds of times per turn and could slow the algo down so avoid putting slow code here.
+        Processing the action frames is complicated so we only suggest it if you have time and experience.
+        Full doc on format of a game frame at in json-docs.html in the root of the Starterkit.
+        """
+        # Let's record at what position we get scored on
+        state = json.loads(turn_string)
+        events = state["events"]
+        breaches = events["breach"]
+        for breach in breaches:
+            location = breach[0]
+            unit_owner_self = True if breach[4] == 1 else False
+            # When parsing the frame data directly, 
+            # 1 is integer for yourself, 2 is opponent (StarterKit code uses 0, 1 as player_index instead)
+            if not unit_owner_self:
+                gamelib.debug_write("Got scored on at: {}".format(location))
+                self.scored_on_locations.append(location)
+                gamelib.debug_write("All locations: {}".format(self.scored_on_locations))
+            else:
+                gamelib.debug_write("Opponent got scored on at: {}".format(location))
+                self.scored_locations.append(location)
+                gamelib.debug_write("All locations: {}".format(self.scored_locations))
 
     # defend attacked locations - return list of locations to defend structures that have been attacked
     def defend_attacked_locations(self, game_state):
