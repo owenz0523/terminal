@@ -177,6 +177,136 @@ class AlgoStrategy(gamelib.AlgoCore):
     def minimax(game_state):
         pass
 
+    def evaluate_resources(self, game_state):
+        """
+        Evaluates the resource balance (mobile points and structure points) between the player and the opponent.
+        """
+        my_resources = game_state.get_resources(0)  # Player's resources
+        opponent_resources = game_state.get_resources(1)  # Opponent's resources
+
+        # Simple resource evaluation: More resources are better
+        resource_score = (my_resources[SP] + my_resources[MP]) - (opponent_resources[SP] + opponent_resources[MP])
+
+        return resource_score
+    
+    def evaluate_structures(self, game_state):
+        """
+        Evaluates the structures on the board for both the player and the opponent.
+        
+        Right now, this only takes in pure placement cost and does not account for positioning.
+        
+        We could probably construct something to quantify the "usefullness" of each structure based on where it's placed.
+        """
+        structure_score = 0
+
+        for location in game_state.game_map:
+            if game_state.contains_stationary_unit(location):
+                for unit in game_state.game_map[location]:
+                    base_score = 0
+                    
+                    # Assign base scores based on the unit type
+                    if unit.unit_type == WALL:
+                        base_score = 2
+                        if unit.upgraded:
+                            base_score += 2
+                            
+                    elif unit.unit_type == TURRET:
+                        base_score = 3 
+
+                        if unit.upgrade:
+                            base_score += 5
+                            
+                    elif unit.unit_type == SUPPORT:
+                        base_score = 4
+                        if unit.upgrade:
+                            base_score += 4
+            
+                    # Multiply the base score by the unit's health percentage
+                    health_percentage = unit.health / unit.max_health
+                    base_score *= health_percentage
+
+                    # Adjust the score based on whether the structure belongs to the player or opponent
+                    if unit.player_index == 0:  # Player's unit
+                        structure_score += base_score
+                    else:  # Opponent's unit
+                        structure_score -= base_score
+
+        return structure_score
+    
+    # def evaluate_threats(self, game_state):
+    #     """
+    #     Evaluates the threat level from the opponent's units.
+
+    #     Args:
+    #         game_state (GameState): The current game state.
+        
+    #     Returns:
+    #         float: Threat score (negative if there are significant threats).
+    #     """
+    #     threat_score = 0
+
+    #     for location in game_state.game_map:
+    #         attackers = game_state.get_attackers(location, 1)  # Check for opponent's attackers
+    #         if attackers:
+    #             # If the opponent has units that can attack, subtract from the score
+    #             threat_score -= len(attackers) * 10  # Arbitrary multiplier to weigh the threats
+
+    #     return threat_score
+    
+    # def evaluate_scoring_potential(self, game_state):
+        """
+        Evaluates the potential for the player to score against the opponent, taking into account the potential damage
+        from opponent's structures along the path.
+        """
+        scoring_score = 0
+
+        # Evaluate potential scoring units
+        for location in game_state.game_map:
+            if game_state.contains_stationary_unit(location):
+                for unit in game_state.game_map[location]:
+                    if unit.player_index == 0 and not unit.stationary:
+                        path_to_edge = game_state.find_path_to_edge([unit.x, unit.y])
+                        if path_to_edge and path_to_edge[-1][1] >= game_state.HALF_ARENA:
+                            # Calculate the potential damage along the path
+                            potential_damage = 0
+                            for path_location in path_to_edge:
+                                attackers = game_state.get_attackers(path_location, 1)
+                                for attacker in attackers:
+                                    potential_damage += attacker.damage_i  # Add the damage from each attacker
+
+                            # Calculate the remaining health of the unit after taking potential damage
+                            remaining_health = unit.health - potential_damage
+
+                            # Only consider the unit's scoring potential if it can survive the journey
+                            if remaining_health > 0:
+                                # The closer to the opponent's edge, the higher the score
+                                scoring_score += 10 * (28 - path_to_edge[-1][1])
+
+        return scoring_score
+    
+    def evaluate_game_state(self, game_state):
+        """
+        Evaluates the current game state and returns a score indicating the favorability of the state.
+        
+        A higher score indicates a more favorable state for the player.
+        
+        Args:
+            game_state (GameState): The current game state.
+        
+        Returns:
+            float: The evaluation score.
+        """
+        score = 0
+
+        # Consider various factors in the evaluation
+        score += self.evaluate_resources(game_state)
+        # score += self.evaluate_threats(game_state)
+        # score += self.evaluate_scoring_potential(game_state)
+        score += self.evaluate_structures(game_state)
+
+        return score
+
+
 if __name__ == "__main__":
     algo = AlgoStrategy()
     algo.start()
