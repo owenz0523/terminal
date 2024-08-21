@@ -171,17 +171,18 @@ class AlgoStrategy(gamelib.AlgoCore):
             for turret in broken_foundation["turrets"]:
                 if not game_state.attempt_spawn(TURRET, turret):
                     break
-            for turret in broken_foundation["turrets"]:
-                if not game_state.attempt_upgrade(turret):
-                    break
                 
             for wall in broken_foundation["walls"]:
                 if not game_state.attempt_spawn(WALL, wall):
                     break
 
-            for wall in broken_foundation["walls"]:
-                if not game_state.attempt_upgrade(wall):
-                    break
+        for turret in foundation_turret_locations:
+            if not game_state.attempt_upgrade(turret):
+                break
+        
+        for wall in foundation_wall_locations:
+            if not game_state.attempt_upgrade(wall):
+                break
 
     def launch_attack(self, game_state):
         """
