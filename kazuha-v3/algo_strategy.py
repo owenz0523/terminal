@@ -219,7 +219,7 @@ class AlgoStrategy(gamelib.AlgoCore):
 
         # panic feature
         opponent_mp = game_state.get_resource(MP, 1)
-        if opponent_mp >= 0.75 * game_state.my_health:
+        if opponent_mp >= game_state.my_health:
             # launch aggressive attack
             if self.SP(game_state) >= 4 and self.MP(game_state) >= 5:
                 if game_state.attempt_spawn(SUPPORT, support_location):
