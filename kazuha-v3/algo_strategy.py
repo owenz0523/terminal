@@ -217,6 +217,16 @@ class AlgoStrategy(gamelib.AlgoCore):
             else:
                 support_location = [scout_location[0] - 1, scout_location[1] - 1]
 
+        # panic feature
+        opponent_mp = game_state.get_resource(MP, 1)
+        if opponent_mp >= 0.75 * game_state.my_health:
+            # launch aggressive attack
+            if self.SP(game_state) >= 4 and self.MP(game_state) >= 5:
+                if game_state.attempt_spawn(SUPPORT, support_location):
+                    if game_state.attempt_spawn(SCOUT, scout_location, int(self.MP(game_state))):  # Use up all the MP we have, truncating MP to the closest integer
+                        game_state.attempt_remove(support_location)
+            return
+
         # Check if we have enough Structure Points and Mobile Points to launch attacks
         # 4 SP is enough to spawn a Support, which shields our 10 Scouts
         if game_state.turn_number < 10:
@@ -363,9 +373,33 @@ class AlgoStrategy(gamelib.AlgoCore):
                 # Get number of enemy turrets that can attack each location and multiply by turret damage
                 damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i
             damages.append(damage)
+
+        enemy_sp = game_state.get_resource(SP, 1)
+
+        # if enemy can place a turret, use second least damage path
+        if enemy_sp > 3:
+            general_location = location_options[sorted(range(len(damages)), key=lambda i: damages[i])[1]]
+        # else return location that takes least damage
+        else:
+            general_location =  location_options[damages.index(min(damages))]
         
-        # Now just return the location that takes the least damage
-        return location_options[damages.index(min(damages))]
+        # look for specific location that minimizes damage
+        x, y = general_location
+        if x < 14:
+            detailed_locations = [[x, y], [x-2, y+2], [x+2, y-2], [x-1, y+1], [x+1, y-1]]
+        else:
+            detailed_locations = [[x, y], [x-2, y-2], [x+2, y+2], [x-1, y-1], [x+1, y+1]]
+
+        detailed_damages = []
+        for detailed_location in detailed_locations:
+            path = game_state.find_path_to_edge(detailed_location)
+            damage = 0
+            for path_location in path:
+                # Get number of enemy turrets that can attack each location and multiply by turret damage
+                damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i
+            detailed_damages.append(damage)
+        
+        return detailed_locations[detailed_damages.index(min(detailed_damages))]
 
     def next_anticipated_attack(self, game_state):
         """
