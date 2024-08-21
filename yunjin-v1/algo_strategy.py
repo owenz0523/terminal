@@ -24,20 +24,13 @@ turret_axis = 12
 
 #layout is sorted by priority
 
-first_turret = [
-    [[4, 13], [3, 13], [2, 13]], #left
-    [[4, 13], [5, 13], [6, 13]] #right
-]
+first_turret = [[4, 13], [3, 13], [2, 13], [5, 13], [6, 13]]
+first_upgrade_turret = [[2, 13], [3, 13], [4, 13], [6, 13], [5, 13]]
 
-second_turret = [
-    [[13, 13], [13,12], [6, 13]], #left
-    [[14, 13], [14, 12], [21, 13]] #right
-]
+second_turret = [[13, 13], [14, 13], [13,12], [14, 12]]
 
-third_turret = [
-    [[23, 13], [22, 13], [21, 13]],  # left
-    [[23, 13], [24, 13], [25, 13]]   # right
-]
+third_turret = [[23, 13], [24, 13], [25, 13], [22, 13], [21, 13]] 
+third_upgrade_turret = [[25, 13], [24, 13], [23, 13], [21, 13], [22, 13]]
 
 
 class AlgoStrategy(gamelib.AlgoCore):
@@ -184,6 +177,8 @@ class AlgoStrategy(gamelib.AlgoCore):
             if game_state.contains_stationary_unit(turret):
                 num += 1
 
+        return num
+
     def where_to_upgrade(self, game_state):
         """
         Our defense is made up of four places, (2 corners and 2 middles)
@@ -193,56 +188,28 @@ class AlgoStrategy(gamelib.AlgoCore):
         right = 1
         so return value will be: [1, 1] for first place right side
         """
-        first_left = self.num_turrets(game_state, first_turret[0])
-        first_right = self.num_turrets(game_state, first_turret[1])
-        second_left = self.num_turrets(game_state, second_turret[0])
-        second_right = self.num_turrets(game_state, second_turret[1])
-        third_left = self.num_turrets(game_state, third_turret[0])
-        third_right = self.num_turrets(game_state, third_turret[1])
 
-        left = first_left + first_right
-        mid = second_left + second_right
-        right = third_left + third_right
+        left = self.num_turrets(game_state, first_turret)
+        mid = self.num_turrets(game_state, second_turret)
+        right = self.num_turrets(game_state, third_turret)
 
         if (mid < left and mid < right):
-            #build middle
-            if (second_left < second_right):
-                #add on left side
-                self.build_next_defence(game_state, second_turret[0])
-                self.upgrade_defence(game_state, second_turret[1])
-            else:
-                #add on right side
-                self.build_next_defence(game_state, second_turret[1])
-                self.upgrade_defence(game_state, second_turret[0])
+            self.build_next_defence(game_state, second_turret, second_turret)
         elif (left < right):
-            if (first_left < first_right):
-                #add on left side
-                self.build_next_defence(game_state, first_turret[0])
-                self.upgrade_defence(game_state, first_turret[1])
-            else:
-                #add on right side
-                self.build_next_defence(game_state, first_turret[1])
-                self.upgrade_defence(game_state, first_turret[0])
+            self.build_next_defence(game_state, first_turret, first_upgrade_turret)
         else:
-            if (second_left < second_right):
-                #add on left side
-                self.build_next_defence(game_state, second_turret[0])
-                self.upgrade_defence(game_state, second_turret[1])
-            else:
-                #add on right side
-                self.build_next_defence(game_state, second_turret[1])
-                self.upgrade_defence(game_state, second_turret[0])
+            self.build_next_defence(game_state, third_turret, third_upgrade_turret)
         
 
-    def build_next_defence(self, game_state, turrets):
+    def build_next_defence(self, game_state, turrets, upgrade):
         """
         only places one turret + upgrade and wall + upgrade (in that priority)
         """
         for turret in turrets:
-            game_state.attempt_upgrade(turret)
             if game_state.attempt_spawn(TURRET, turret):
-                game_state.attempt_upgrade(turret)
                 break
+        for turret in upgrade:
+            game_state.attempt_upgrade(turret)
         
     def upgrade_defence(self, game_state, turrets):
         for turret in turrets:
