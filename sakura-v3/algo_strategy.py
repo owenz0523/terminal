@@ -168,7 +168,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         return {
             "walls": broken_walls,
             "turrets": broken_turrets,
-        } if len(broken_turrets) and len(broken_walls) else None
+        } if len(broken_turrets) or len(broken_walls) else None
 
     def SP(self, game_state):
         return game_state.get_resource(SP)
