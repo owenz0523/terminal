@@ -35,6 +35,11 @@ class AlgoStrategy(gamelib.AlgoCore):
         seed = random.randrange(maxsize)
         random.seed(seed)
         gamelib.debug_write('Random seed: {}'.format(seed))
+        self.left_turrets = [0]
+        self.left_middle_turrets = [0]
+        self.right_middle_turrets = [0]
+        self.right_turrets = [0]
+        self.middle_turrets = [0]
 
     def on_game_start(self, config):
         """ 
@@ -111,61 +116,18 @@ class AlgoStrategy(gamelib.AlgoCore):
     
     def MP(self, game_state):
         return game_state.get_resource(MP)
+    
+    def opponent_SP(self, game_state):
+        return game_state.get_resource(SP, 1)
 
-    def launch_attack(self, game_state):
-        """
-        We should always prioritize attack over defense. 
-        Thus, we first try spending structure points on a (deleted) support to "support" our rush with Scouts
-        """
-        # Determine Scout spawn location
-        scout_location = self.check_all_spawn_locations(game_state)
-        left = scout_location[0] + scout_location[1] < 14
-        if left:
-            if scout_location[1] == 0:
-                support_location = [scout_location[0], 1]
-            elif scout_location[1] == 13:
-                support_location = [scout_location[0] + 1, scout_location[1]]
-            elif not game_state.contains_stationary_unit([scout_location[0] + 2, scout_location[1]]):
-                support_location = [scout_location[0] + 2, scout_location[1]]
-            else:
-                support_location = [scout_location[0] + 1, scout_location[1] - 1]
-        else:
-            if scout_location[1] == 0:
-                support_location = [scout_location[0], 1]
-            elif scout_location[1] == 13:
-                support_location = [scout_location[0] - 1, scout_location[1]]
-            elif not game_state.contains_stationary_unit([scout_location[0] - 2, scout_location[1]]):
-                support_location = [scout_location[0] - 2, scout_location[1]]
-            else:
-                support_location = [scout_location[0] - 1, scout_location[1] - 1]
+    def opponent_MP(self, game_state):
+        return game_state.get_resource(MP, 1)
 
-        # # panic feature
-        # opponent_mp = game_state.get_resource(MP, 1)
-        # if opponent_mp >= 1.5 * game_state.my_health:
-        #     # launch aggressive attack
-        #     if self.SP(game_state) >= 4 and self.MP(game_state) >= 10:
-        #         if game_state.attempt_spawn(SUPPORT, support_location):
-        #             if game_state.attempt_spawn(SCOUT, scout_location, int(self.MP(game_state))):  # Use up all the MP we have, truncating MP to the closest integer
-        #                 game_state.attempt_remove(support_location)
-        #     return
-
-        # Check if we have enough Structure Points and Mobile Points to launch attacks
-        # 4 SP is enough to spawn a Support, which shields our 10 Scouts
-        if game_state.turn_number < 10:
-            if self.SP(game_state) >= 4 and self.MP(game_state) >= 10:
-                if game_state.attempt_spawn(SUPPORT, support_location):
-                    if game_state.attempt_spawn(SCOUT, scout_location, int(self.MP(game_state))): # Use up all the MP we have, truncating MP to the closest integer
-                        game_state.attempt_remove(support_location)
-        elif game_state.turn_number < 20:
-            if self.SP(game_state) >= 4 and self.MP(game_state) >= 15:
-                if game_state.attempt_spawn(SUPPORT, support_location):
-                    if game_state.attempt_spawn(SCOUT, scout_location, int(self.MP(game_state))): # Use up all the MP we have, truncating MP to the closest integer
-                        game_state.attempt_remove(support_location)
-        else:
-            if self.SP(game_state) >= 4 and self.MP(game_state) >= 20:
-                if game_state.attempt_spawn(SUPPORT, support_location):
-                    if game_state.attempt_spawn(SCOUT, scout_location, int(self.MP(game_state))): # Use up all the MP we have, truncating MP to the closest integer
-                        game_state.attempt_remove(support_location)
+    def health(self, game_state):
+        return game_state.my_health
+    
+    def opponent_health(self, game_state):
+        return game_state.enemy_health
 
     def num_turrets(self, game_state, turrets):
         num = 0
@@ -235,29 +197,110 @@ class AlgoStrategy(gamelib.AlgoCore):
             if game_state.attempt_upgrade(turret):
                 break
 
+    # 0 = left, 1 = left middle, 2 = right middle, 3 = right
+    # 0 = quick, 1 = medium, 2 = heavy
+    def launch_attack(self, game_state):
+        self.track_turrets(game_state)
 
-    def least_damage_spawn_location(self, game_state, location_options):
-        """
-        This function will help us guess which location is the safest to spawn moving units from.
-        It gets the path the unit will take then checks locations on that path to 
-        estimate the path's damage risk.
-        """
-        damages = []
-        # Get the damage estimate each path will take
-        for location in location_options:
-            path = game_state.find_path_to_edge(location)
-            damage = 0
-            for path_location in path:
-                # Get number of enemy turrets that can attack each location and multiply by turret damage
-                damage += len(game_state.get_attackers(path_location, 0)) * gamelib.GameUnit(TURRET, game_state.config).damage_i
-            damages.append(damage)
+        mp = self.MP(game_state)
+        sp = self.SP(game_state)
+        opponentSP = self.opponent_SP(game_state)
+        opponentMP = self.opponent_MP(game_state)
+
+        health = self.health(game_state)
+        opponent_health = self.opponent_health(game_state)
+        turrets = [self.left_turrets, self.middle_turrets, self.right_turrets]
+
+        if opponent_health < mp * 0.75 and health > opponentMP:
+            self.all_out_attack(game_state, mp)
+
+        if sp > 4:
+            for i, turret_block in enumerate(turrets):
+                if sum(turret_block) <= 1 and (i == 0 or i == 3) and opponentSP < 10 and mp >= 5:
+                    self.attack(game_state, i, mp, 0)
+                    return
+            
+            for i, turret_block in enumerate(turrets):
+                if sum(turret_block) <= 4 and mp >= 10:
+                    self.attack(game_state, i, mp, 1) 
+                    return
+
+            for i, turret_block in enumerate(turrets):
+                if sum(turret_block) <= 6 and mp >= 15:
+                    self.attack(game_state, i, mp, 2)
+                    return
+            
+            for i, turret_block in enumerate(turrets):
+                if mp >= 20:
+                    self.attack(game_state, i, mp, 2)
+                    return
+
+    def is_upgraded(self, game_state, turret):
+        for unit in game_state.game_map[turret[0], turret[1]]:
+            if unit.stationary and unit.upgraded:
+                return 1
+        return 0
+                
+    def track_turrets(self, game_state):
+        self.left_turrets = [0]
+        self.middle_turrets = [0]
+        self.right_turrets = [0]
+        for location in game_state.game_map:
+            if game_state.contains_stationary_unit(location):
+                for unit in game_state.game_map[location]:
+                    if unit.player_index == 1 and unit.unit_type[0] == "D":
+                        point = 1 + self.is_upgraded(game_state, location)
+                        gamelib.debug_write(point)
+                        if location[0] < 9:
+                            self.left_turrets.append(point)
+                        elif location[0] < 19:
+                            self.middle_turrets.append(point)
+                        else:
+                            self.right_turrets.append(point)
+
+
+    def attack(self, game_state, location, mp, weight):
         
-        # Now just return the location that takes the least damage
-        return location_options[damages.index(min(damages))]
+        if weight == 0:
+            if location == 0:
+                if game_state.attempt_spawn(SCOUT, [0, 13], int(mp)):
+                    if game_state.attempt_spawn(SUPPORT, [1, 12]):
+                        game_state.attempt_remove([1,12])
+            elif location == 1:
+                if game_state.attempt_spawn(SCOUT, [7, 6], int(mp)):
+                    if game_state.attempt_spawn(SUPPORT, [8, 5]):
+                        game_state.attempt_remove([8, 5])
+            else:
+                if game_state.attempt_spawn(SCOUT, [27, 13], int(mp)):
+                    if game_state.attempt_spawn(SUPPORT, [26, 12]):
+                        game_state.attempt_remove([26, 12])
+        else:
+            if location == 2:
+                if game_state.attempt_spawn(SCOUT, [13, 0], int(mp)):
+                    if game_state.attempt_spawn(SUPPORT, [13, 1]):
+                        game_state.attempt_remove([13,1])
+            elif location == 1:
+                if game_state.attempt_spawn(SCOUT, [7, 6], int(mp)):
+                    if game_state.attempt_spawn(SUPPORT, [8, 5]):
+                        game_state.attempt_remove([8, 5])
+            else:
+                if game_state.attempt_spawn(SCOUT, [14, 0], int(mp)):
+                    if game_state.attempt_spawn(SUPPORT, [14, 1]):
+                        game_state.attempt_remove([14, 1])
 
-    def check_all_spawn_locations(self, game_state):
-        locations = [[0, 13], [27, 13], [13, 0], [14, 0], [4, 9], [23, 9], [7, 6], [20, 6], [10, 3], [17,3]]
-        return self.least_damage_spawn_location(game_state, locations)
+    def all_out_attack(self, game_state, mp):
+        for location in game_state.game_map:
+            if game_state.contains_stationary_unit(location):
+                for unit in game_state.game_map[location]:
+                    if unit.player_index == 0:
+                        game_state.attempt_remove(location)
+
+        game_state.attempt_spawn(SCOUT, [13, 0], int(mp))
+        support_startX = 13
+        support_startY = 1
+        for i in range(13):
+            if game_state.attempt_spawn(SUPPORT, [support_startX + i, support_startY + i]):
+                game_state.attempt_remove([support_startX + i, support_startY + i])
 
     def place_turret_count(self, game_state):
         """
@@ -270,12 +313,6 @@ class AlgoStrategy(gamelib.AlgoCore):
             "upgrade": current_SP//5,
             "full": current_SP//8
         }
-
-    def is_upgraded(self, game_state, turret):
-        for unit in game_state.game_map[turret[0], turret[1]]:
-            if unit.stationary and unit.upgraded:
-                return True
-        return False
     
     def get_turret_health_percentage(self, game_state, turret):
         for unit in game_state.game_map[turret[0], turret[1]]:
@@ -295,13 +332,27 @@ class AlgoStrategy(gamelib.AlgoCore):
         
         return defense_point
 
-
+    def on_action_frame(self, turn_string):
+        """
+        This is the action frame of the game. This function could be called 
+        hundreds of times per turn and could slow the algo down so avoid putting slow code here.
+        Processing the action frames is complicated so we only suggest it if you have time and experience.
+        Full doc on format of a game frame at in json-docs.html in the root of the Starterkit.
+        """
+        # # Let's record at what position we get scored on
+        # state = json.loads(turn_string)
+        # events = state["events"]
+        # breaches = events["breach"]
+        # for breach in breaches:
+        #     location = breach[0]
+        #     unit_owner_self = True if breach[4] == 1 else False
+        #     # When parsing the frame data directly, 
+        #     # 1 is integer for yourself, 2 is opponent (StarterKit code uses 0, 1 as player_index instead)
+        #     if not unit_owner_self:
+        #         gamelib.debug_write("Got scored on at: {}".format(location))
+        #         self.scored_on_locations.append(location)
+        #         gamelib.debug_write("All locations: {}".format(self.scored_on_locations))
 
 if __name__ == "__main__":
     algo = AlgoStrategy()
     algo.start()
-
-
-"""
-goal of defense, we want to score the defense, check how much SP and spread it out
-"""
