@@ -207,7 +207,7 @@ class AlgoStrategy(gamelib.AlgoCore):
         turrets = [self.left_turrets, self.left_middle_turrets, self.right_middle_turrets, self.right_turrets]
 
         if opponent_health < mp * 0.75 and health > opponentMP:
-            self.all_out_attack(game_state)
+            self.all_out_attack(game_state, mp)
 
         for i, turret_block in enumerate(turrets):
             if sum(turret_block) <= 1.25 and (i == 0 or i == 3) and opponentSP < 10 and mp >= 5:
