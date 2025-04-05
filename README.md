@@ -1,6 +1,7 @@
 # Citadel Terminal Summer Invitational 2024
 
 Info [[link](https://www.citadel.com/careers/students/terminal/)]
+
 Competition [[link](https://terminal.c1games.com/competitions/315)]
 
 Team: Allegation Alligators
