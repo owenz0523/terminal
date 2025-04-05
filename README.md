@@ -4,7 +4,7 @@ Info [[link](https://www.citadel.com/careers/students/terminal/)]
 
 Competition [[link](https://terminal.c1games.com/competitions/315)]
 
-Team: Allegation Alligators
+### Team: Allegation Alligators
 
 # Quarter Finals placement
 
@@ -12,6 +12,9 @@ Team: Allegation Alligators
 
 
 # Global Placement
+
+### Algorithm: Chaewon
+
 ![image](https://github.com/user-attachments/assets/bfda3b17-192c-4128-b2a8-97402c3bb344)
 
 
