@@ -15,7 +15,8 @@ Competition [[link](https://terminal.c1games.com/competitions/315)]
 
 ### Algorithm: Chaewon
 
-<img width="1126" alt="image" src="https://github.com/user-attachments/assets/f0201d2e-3894-48c7-bcb2-74aafd273409" />
+<img width="1174" alt="image" src="https://github.com/user-attachments/assets/575657bd-57b0-481f-8aea-30f06778e157" />
+
 
 
 
